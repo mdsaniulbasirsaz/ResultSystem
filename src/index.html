@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/2.5.0/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+</head>
+<body">
+
+    <nav class="navbar navbar-light bg-success">
+    <a class="navbar-brand" href="/"><span class="font-weight-bold text-white">Result</span></a>
+    </nav>
+
+    <div class="container-fluid d-flex mt-1 justify-content-center mt-4">
+        <div class="card shadow-lg" style="width: 45rem;">
+            <div class="card-body">
+                <h5 class="card-title font-weight-bold text-center text-primary">Result System 2024</h5>
+                <hr>
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="studentIdInput"  class="form-control" placeholder="Enter your Student id..." aria-label="Search">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" id="searchButton" type="button">Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid d-flex mt-1 justify-content-center mt-4">
+        <div class="card shadow-lg" style="width: 45rem;">
+            <div class="card-body">
+                <div class="container mt-2">
+                    <div class="row justify-content-center">
+                        <div class="col-md-12">
+                            <div class="result-card">
+                                <h5 class="text-center mb-4 font-weight-bold text-success">Exam Result</h5>
+                                
+                                <!-- Student Information Section -->
+                                <div class="mb-4" style="font-size: 13px;" id="studentinfo">
+                                    <p id="name" class="mb-0"><strong>Student Name:</strong> John Doe</p>
+                                    <p id="studentId" class="mb-0"><strong>Student ID:</strong> 123456</p>
+                                    <p id="phone" class="mb-0"><strong>Mobile:</strong> +1234567890</p>
+                                    <p id="address" class="mb-0"><strong>Address:</strong> 123 Main Street, City</p>
+                                    <p id="college" class="mb-0"><strong>College Name:</strong> ABC College</p>
+                                </div>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Marks</th>
+                                            <th>Grade</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="resultsTableBody">
+                                        
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="errorMessage" class="alert alert-danger mt-3" style="display:none;">
+                                No results found for this Student ID. (Range: 260101-260209)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+  
+
+
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+    var resultCard = document.querySelector('.result-card');
+    var searchButton = document.querySelector('#searchButton');
+    var errorMessage = document.querySelector('#errorMessage');
+
+    resultCard.style.display = 'none';
+    errorMessage.style.display = 'none';
+
+    searchButton.addEventListener('click', function () {
+        var studentId = document.querySelector('#studentIdInput').value.trim();
+        
+        if (studentId) {
+            fetch(`/api/results/${studentId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('No results found');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayResults(data);
+                    resultCard.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching results:', error);
+                    resultCard.style.display = 'none';
+                    errorMessage.style.display = 'block';
+                });
+                fetch(`/api/students/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data) {
+                document.getElementById('name').innerHTML = `<strong>Student Name:</strong> ${data.name}`;
+                document.getElementById('studentId').innerHTML = `<strong>Student ID:</strong> ${data.studentId}`;
+                document.getElementById('phone').innerHTML = `<strong>Mobile:</strong> ${data.phone}`;
+                document.getElementById('address').innerHTML = `<strong>Group:</strong> ${data.group}`;
+                document.getElementById('college').innerHTML = `<strong>College Name:</strong> ${data.college}`;
+            } else {
+                console.error('Student data not found');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching student data:', error);
+        });
+
+        } else {
+            alert('Please enter a valid Student ID.');
+        }
+    });
+});
+
+
+function displayResults(data) {
+    const tableBody = document.getElementById('resultsTableBody');
+    tableBody.innerHTML = '';
+
+    // List of subjects with their corresponding data
+    const subjects = [
+        { name: 'Physics', mark: data.physics },
+        { name: 'Mathematics', mark: data.math },
+        { name: 'Chemistry', mark: data.chemistry }
+    ];
+
+    let totalGPA = 0;
+
+    // Populate the table with subject, marks, and calculated grade
+    subjects.forEach(subject => {
+        const grade = calculateGrade(subject.mark);
+        const gpa = calculateGPA(subject.mark);
+        totalGPA += gpa;
+        const row = `
+            <tr>
+                <td>${subject.name}</td>
+                <td>${subject.mark}</td>
+                <td>${grade}</td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    });
+
+    const averageGPA = (totalGPA / subjects.length).toFixed(2);
+    const status = averageGPA >= 2.0 ? 'Passed' : 'Failed';
+
+
+    // Display the total and grade
+    const totalRow = `
+                <tr style="font-size:14px">
+                    <td colspan="3">
+                        <p class="text-left font-weight-bold mb-0" style="color:${status === 'Passed' ? 'green' : 'red'}">Status: ${status}</p>
+                        <p class="text-left font-weight-bold  mb-0" style="color:#0b0bf6">GPA: ${averageGPA}</p>
+                        <p class="text-left font-weight-bold  mb-0">Average Grade: ${data.Grade}</p>
+                        <p class="text-right font-weight-bold  mb-0">Total Marks: ${data.Total}</p>
+                    </td>
+                </tr>
+    `;
+    tableBody.insertAdjacentHTML('beforeend', totalRow);
+
+}
+
+function calculateGrade(marks) {
+    const mark = parseInt(marks, 10);
+    if (mark >= 80) return 'A+';
+if (mark >= 70 && mark <= 79) return 'A';
+if (mark >= 60 && mark <= 69) return 'A-';
+if (mark >= 50 && mark <= 59) return 'B';
+if (mark >= 40 && mark <= 49) return 'C';
+return 'F';
+
+}
+
+function calculateGPA(marks) {
+    const mark = parseInt(marks, 10);
+    if (mark >= 80) return 5.0;
+    if (mark >= 70 && mark <= 79) return 4.0;
+    if (mark >= 60 && mark <= 69) return 3.0;
+    if (mark >= 50 && mark <= 59) return 2.0;
+    if (mark >= 40 && mark <= 49) return 2.0;
+    return 0.0;
+}
+
+    </script>
+    
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/2.5.0/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+</body>
+</html>
